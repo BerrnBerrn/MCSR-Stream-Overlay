@@ -1,6 +1,8 @@
 # MCSR Ranked ELO Overlay
 
-
+<p align="center">
+  <img width="174" height="240" alt="MCSR_Overlay_Icon" src="https://github.com/user-attachments/assets/1dc8ca19-46fd-48f3-bfdc-31486bcfe130" />
+</p>
 
 A live ELO tracker overlay for [MCSR Ranked](https://mcsrranked.com) — designed for use in OBS as a browser source.
 
@@ -53,3 +55,4 @@ Stats are fetched from the [MCSR Ranked public API](https://mcsrranked.com) and 
 
 ---
 > **Disclaimer:** This project is an independent, community-made tool and is not affiliated with, endorsed by, or associated with the official MCSR Ranked team in any way.
+
