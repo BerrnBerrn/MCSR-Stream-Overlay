@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCSR Elo Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --panel: rgba(18, 18, 22, 0.92);
+    --border: rgba(255,255,255,0.07);
+    --gold: #f5c842;
+    --gold-glow: rgba(245,200,66,0.35);
+    --cyan: #4af0d8;
+    --cyan-glow: rgba(74,240,216,0.25);
+    --red: #ff4f4f;
+    --green: #4aff8c;
+    --text: #e8e8f0;
+    --muted: #5a5a6e;
+    --pixel: 'Press Start 2P', monospace;
+    --mono: 'Share Tech Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    font-family: var(--mono);
+    color: var(--text);
+    width: 420px;
+  }
+
+  .tracker {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 18px 14px;
+    position: relative;
+    overflow: visible;
+    backdrop-filter: blur(10px);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.04),
+      0 8px 40px rgba(0,0,0,0.7),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .tracker::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px
+    );
+    pointer-events: none;
+    z-index: 10;
+  }
+  .tracker::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0.6;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .header-title {
+    font-family: var(--pixel);
+    font-size: 7px;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 12px var(--gold-glow);
+    line-height: 1.6;
+  }
+  .header-title span {
+    display: block;
+    font-size: 5px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    margin-top: 2px;
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+    margin-left: auto;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px var(--green); }
+    50%      { opacity:0.4; box-shadow: 0 0 3px var(--green); }
+  }
+  .username {
+    font-family: var(--pixel);
+    font-size: 6px;
+    color: var(--cyan);
+    text-shadow: 0 0 10px var(--cyan-glow);
+    letter-spacing: 0.1em;
+  }
+
+  .elo-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    position: relative;
+  }
+
+  .icon-wrap {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    position: relative;
+    overflow: visible;
+  }
+  .rank-icon {
+    width: 64px;
+    height: 64px;
+    image-rendering: pixelated;
+    object-fit: contain;
+    display: block;
+    transition: filter 0.5s;
+  }
+  #shatterCanvas {
+    position: absolute;
+    top: -118px; left: -118px;
+    width: 300px; height: 300px;
+    pointer-events: none;
+    display: none;
+    z-index: 50;
+  }
+
+  .elo-info { flex: 1; min-width: 0; }
+  .elo-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .slot-display {
+    display: flex;
+    align-items: flex-end;
+    gap: 1px;
+    line-height: 1;
+  }
+  .slot-digit {
+    display: inline-block;
+    width: 18px;
+    height: 28px;
+    overflow: hidden;
+    position: relative;
+    vertical-align: bottom;
+  }
+  .slot-reel {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+  }
+  .slot-reel span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    font-family: var(--pixel);
+    font-size: 20px;
+    line-height: 1;
+    color: var(--gold);
+  }
+
+  .elo-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .rank-name {
+    font-family: var(--pixel);
+    font-size: 7px;
+    margin-top: 8px;
+    letter-spacing: 0.05em;
+  }
+
+  .elo-change {
+    font-family: var(--pixel);
+    font-size: 9px;
+    padding: 3px 7px;
+    border-radius: 2px;
+    display: none;
+    position: relative;
+    top: -2px;
+  }
+  .elo-change.pos {
+    color: var(--green);
+    background: rgba(74,255,140,0.12);
+    border: 1px solid rgba(74,255,140,0.3);
+    animation: badgePop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards, badgeFade 0.5s ease 5s forwards;
+  }
+  .elo-change.neg {
+    color: var(--red);
+    background: rgba(255,79,79,0.12);
+    border: 1px solid rgba(255,79,79,0.3);
+    animation: badgePop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards, badgeFade 0.5s ease 5s forwards;
+  }
+  @keyframes badgePop {
+    from { opacity:0; transform: scale(0.6) translateY(4px); }
+    to   { opacity:1; transform: scale(1) translateY(0); }
+  }
+  @keyframes badgeFade {
+    from { opacity:1; }
+    to   { opacity:0; }
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .stat-card {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 9px 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent, var(--gold)), transparent);
+    opacity: 0.4;
+  }
+  .stat-card:nth-child(2) { --accent: var(--cyan); }
+  .stat-card:nth-child(3) { --accent: var(--green); }
+  .stat-label {
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .stat-value {
+    font-family: var(--pixel);
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    line-height: 1.4;
+  }
+  .stat-card:nth-child(1) .stat-value { color: var(--gold); }
+  .stat-card:nth-child(2) .stat-value { color: var(--cyan); }
+  .stat-card:nth-child(3) .stat-value { color: var(--green); }
+  .wr-bar-bg {
+    margin-top: 6px;
+    height: 3px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .wr-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--cyan));
+    border-radius: 2px;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .error-msg {
+    font-family: var(--pixel);
+    font-size: 6px;
+    color: var(--red);
+    margin-top: 6px;
+    text-align: center;
+    min-height: 8px;
+  }
+
+
+  /* Settings gear button */
+  .settings-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    transition: color 0.2s, background 0.2s;
+    z-index: 20;
+    line-height: 1;
+  }
+  .settings-btn:hover { color: var(--gold); background: rgba(245,200,66,0.08); }
+
+  .settings-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .settings-overlay.open { display: flex; }
+
+  .settings-modal {
+    background: #13131a;
+    border: 1px solid rgba(245,200,66,0.25);
+    border-radius: 5px;
+    padding: 22px 24px 20px;
+    width: 300px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.04);
+    position: relative;
+  }
+  .settings-modal::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0.5;
+    border-radius: 5px 5px 0 0;
+  }
+  .settings-title {
+    font-family: var(--pixel);
+    font-size: 7px;
+    color: var(--gold);
+    letter-spacing: 0.1em;
+    margin-bottom: 18px;
+    text-shadow: 0 0 10px var(--gold-glow);
+  }
+  .settings-label {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+  }
+  .settings-input {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 3px;
+    color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    margin-bottom: 14px;
+  }
+  .settings-input:focus {
+    border-color: rgba(74,240,216,0.5);
+    box-shadow: 0 0 0 2px rgba(74,240,216,0.1);
+  }
+  .settings-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    padding: 8px 14px;
+    border-radius: 3px;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-cancel { background: rgba(255,255,255,0.07); color: var(--muted); }
+  .btn-cancel:hover { background: rgba(255,255,255,0.12); color: var(--text); }
+  .btn-save { background: var(--gold); color: #0d0d0f; }
+  .btn-save:hover { opacity: 0.85; }
+  .username { cursor: pointer; }
+  .username:hover { text-decoration: underline; text-underline-offset: 3px; }
+</style>
+</head>
+<body>
+<div class="tracker">
+<button class="settings-btn" id="settingsBtn" title="Settings">⚙</button>
+
+<div class="settings-overlay" id="settingsOverlay">
+  <div class="settings-modal">
+    <div class="settings-title">⚙ SETTINGS</div>
+    <div class="settings-label">Minecraft Username</div>
+    <input class="settings-input" id="usernameInput" type="text" placeholder="Enter your username..." spellcheck="false" />
+    <div class="settings-actions">
+      <button class="btn btn-cancel" id="cancelBtn">CANCEL</button>
+      <button class="btn btn-save" id="saveBtn">SAVE</button>
+    </div>
+  </div>
+</div>
+
+
+  <div class="header">
+    <div>
+      <div class="header-title">
+        MCSR RANKED
+
+      </div>
+      <div class="username" id="displayName">—</div>
+    </div>
+    <div class="live-dot"></div>
+  </div>
+
+  <div class="elo-section">
+    <div class="icon-wrap">
+      <img class="rank-icon" id="rankIcon" src="" alt="rank" />
+      <canvas id="shatterCanvas" width="300" height="300"></canvas>
+    </div>
+    <div class="elo-info">
+      <div class="elo-row">
+        <div class="slot-display" id="slotDisplay"></div>
+        <div class="elo-change" id="eloChange"></div>
+      </div>
+      <div class="elo-label">ELO RATING</div>
+      <div class="rank-name" id="rankName" style="color:#888">—</div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">BEST TIME</div>
+      <div class="stat-value" id="bestTime">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">RECORD</div>
+      <div class="stat-value" id="record">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">WIN RATE</div>
+      <div class="stat-value" id="winrate">—</div>
+      <div class="wr-bar-bg">
+        <div class="wr-bar-fill" id="wrBar" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="error-msg" id="errorMsg"></div>
+
+</div>
+
+<script>
+const BASE = 'https://mcsrrankedtracker.vercel.app/images/ranks/';
+const RANKS = [
+  { name: 'Coal',      min: 0,    max: 599,      color: '#aaaaaa', glow: '#cccccc', img: BASE+'coal.png'      },
+  { name: 'Iron',      min: 600,  max: 899,      color: '#d4d4d4', glow: '#f0f0f0', img: BASE+'iron.png'      },
+  { name: 'Gold',      min: 900,  max: 1199,     color: '#f5c842', glow: '#ffd966', img: BASE+'gold.png'      },
+  { name: 'Emerald',   min: 1200, max: 1499,     color: '#4aff8c', glow: '#7fffb0', img: BASE+'emerald.png'   },
+  { name: 'Diamond',   min: 1500, max: 1999,     color: '#4af0d8', glow: '#7fffd4', img: BASE+'diamond.png'   },
+  { name: 'Netherite', min: 2000, max: Infinity, color: '#c0a0ff', glow: '#dfc0ff', img: BASE+'netherite.png' },
+];
+function getRank(elo) { return RANKS.find(r => elo >= r.min && elo <= r.max) || RANKS[0]; }
+
+const imgCache = {};
+RANKS.forEach(r => {
+  const im = new Image(); im.crossOrigin = 'anonymous'; im.src = r.img;
+  imgCache[r.name] = im;
+});
+
+let shatterAnimId = null;
+
+function buildShards(count) {
+  const SIZE = 64;
+  const shards = [];
+  const pts = [];
+  const cols = Math.ceil(Math.sqrt(count * 1.5));
+  const rows = Math.ceil(count / cols);
+  const cw = SIZE / cols, ch = SIZE / rows;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      pts.push([
+        (c + 0.2 + Math.random() * 0.6) * cw,
+        (r + 0.2 + Math.random() * 0.6) * ch
+      ]);
+    }
+  }
+  pts.forEach((p, i) => {
+    const cx = p[0], cy = p[1];
+    const sides = 5 + Math.floor(Math.random() * 4);
+    const verts = [];
+    for (let s = 0; s < sides; s++) {
+      const angle = (s / sides) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+      const r = (cw * 0.55 + Math.random() * cw * 0.35);
+      verts.push([
+        Math.max(0, Math.min(SIZE, cx + Math.cos(angle) * r)),
+        Math.max(0, Math.min(SIZE, cy + Math.sin(angle) * r))
+      ]);
+    }
+    const dx = cx - SIZE / 2, dy = cy - SIZE / 2;
+    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+    const speed = 1.5 + Math.random() * 2.5;
+    shards.push({
+      verts,
+      cx, cy,
+      vx: (dx / dist) * speed,
+      vy: (dy / dist) * speed - Math.random() * 1.5,
+      rot: 0,
+      rotV: (Math.random() - 0.5) * 0.18,
+      alpha: 1,
+    });
+  });
+  return shards;
+}
+
+function drawShardFrame(ctx, srcImg, shards, progress) {
+  const CSIZE  = 300;
+  const ISIZE  = 64;
+  const OFFSET = 118;
+  ctx.clearRect(0, 0, CSIZE, CSIZE);
+
+  shards.forEach(sh => {
+    const t   = progress;
+    const et  = 1 - Math.pow(1 - t, 2);
+    const dx  = sh.vx * et * 280;
+    const dy  = sh.vy * et * 280;
+    const rot = sh.rotV * t * 8;
+    const alpha = Math.max(0, 1 - t * 1.1);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    ctx.translate(OFFSET + sh.cx + dx, OFFSET + sh.cy + dy);
+    ctx.rotate(rot);
+    ctx.translate(-sh.cx, -sh.cy);
+
+    ctx.beginPath();
+    sh.verts.forEach(([vx, vy], i) => i === 0 ? ctx.moveTo(vx, vy) : ctx.lineTo(vx, vy));
+    ctx.closePath();
+    ctx.clip();
+
+    ctx.drawImage(srcImg, 0, 0, ISIZE, ISIZE);
+
+    ctx.strokeStyle = `rgba(255,255,255,${0.9 * (1 - t * 0.7)})`;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    ctx.restore();
+  });
+}
+
+function animateShatter(oldRank, newRank, onDone) {
+  if (shatterAnimId) cancelAnimationFrame(shatterAnimId);
+
+  const canvas  = document.getElementById('shatterCanvas');
+  const ctx     = canvas.getContext('2d');
+  const iconEl  = document.getElementById('rankIcon');
+  const oldImg = imgCache[oldRank.name];
+  const newImg = imgCache[newRank.name];
+
+  Promise.all([
+    oldImg.complete ? Promise.resolve() : new Promise(r => { oldImg.onload = r; }),
+    newImg.complete ? Promise.resolve() : new Promise(r => { newImg.onload = r; }),
+  ]).then(() => {
+
+    const shards = buildShards(18);
+
+    const SHAKE_DUR   = 600;
+    const SHATTER_DUR = 1800;
+    const TOTAL       = SHAKE_DUR + SHATTER_DUR;
+    const CSIZE = 300, ISIZE = 64, OFFSET = 118;
+
+    canvas.style.display = 'block';
+
+    ctx.clearRect(0, 0, CSIZE, CSIZE);
+    ctx.drawImage(oldImg, OFFSET, OFFSET, ISIZE, ISIZE);
+
+    iconEl.src = newImg.src;
+    iconEl.style.opacity = '0';
+    iconEl.style.filter  = `drop-shadow(0 0 14px ${newRank.glow})`;
+
+    const start = performance.now();
+
+    function frame(now) {
+      const elapsed = now - start;
+
+      if (elapsed < SHAKE_DUR) {
+        const t = elapsed / SHAKE_DUR;
+        const intensity = t * 6;
+        const dx = (Math.random() - 0.5) * intensity;
+        const dy = (Math.random() - 0.5) * intensity;
+
+        ctx.clearRect(0, 0, 300, 300);
+        ctx.save();
+        ctx.translate(118 + dx, 118 + dy);
+        ctx.drawImage(oldImg, 0, 0, 64, 64);
+
+        if (t > 0.3) {
+          const crackAlpha = (t - 0.3) / 0.7;
+          drawCracks(ctx, crackAlpha, 64);
+        }
+        ctx.restore();
+
+        shatterAnimId = requestAnimationFrame(frame);
+
+      } else if (elapsed < TOTAL) {
+
+        const t = (elapsed - SHAKE_DUR) / SHATTER_DUR;
+        drawShardFrame(ctx, oldImg, shards, t);
+
+
+        if (t > 0.4) {
+          const revealT = (t - 0.4) / 0.6;
+          iconEl.style.opacity = String(revealT);
+          iconEl.style.transform = `scale(${0.7 + 0.3 * revealT})`;
+        }
+
+        shatterAnimId = requestAnimationFrame(frame);
+
+      } else {
+
+        ctx.clearRect(0, 0, 300, 300);
+        canvas.style.display = 'none';
+        iconEl.style.opacity  = '1';
+        iconEl.style.transform = 'scale(1)';
+
+        iconEl.style.filter = `drop-shadow(0 0 22px ${newRank.glow}) drop-shadow(0 0 8px ${newRank.glow})`;
+        setTimeout(() => {
+          iconEl.style.filter = `drop-shadow(0 0 10px ${newRank.glow})`;
+        }, 400);
+
+        if (onDone) onDone();
+      }
+    }
+
+    shatterAnimId = requestAnimationFrame(frame);
+  });
+}
+
+
+function drawCracks(ctx, alpha, size) {
+  ctx.save();
+  ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.9})`;
+  ctx.lineWidth = 0.8;
+  ctx.shadowColor = 'rgba(255,220,100,0.8)';
+  ctx.shadowBlur  = 3;
+
+  const cracks = [
+    [[32,32],[18,10],[8,20]],
+    [[32,32],[50,14],[58,30]],
+    [[32,32],[20,55],[10,50]],
+    [[32,32],[48,56],[55,44]],
+    [[32,32],[32,5]],
+    [[32,32],[5,38]],
+    [[32,32],[58,38]],
+  ];
+
+  cracks.forEach(path => {
+    const visLen = Math.floor(path.length * alpha) + 1;
+    const pts = path.slice(0, visLen);
+    if (pts.length < 2) return;
+    ctx.beginPath();
+    pts.forEach(([x,y], i) => {
+      const jx = x + (Math.random() - 0.5) * 2;
+      const jy = y + (Math.random() - 0.5) * 2;
+      i === 0 ? ctx.moveTo(jx, jy) : ctx.lineTo(jx, jy);
+    });
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+
+
+
+const DIGIT_H = 28;
+const NUMS = ['0','1','2','3','4','5','6','7','8','9'];
+let currentDigits = [];
+
+function buildSlots(numDigits, color) {
+  const container = document.getElementById('slotDisplay');
+  container.innerHTML = '';
+  currentDigits = [];
+  for (let i = 0; i < numDigits; i++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'slot-digit';
+    const reel = document.createElement('div');
+    reel.className = 'slot-reel';
+    for (let rep = 0; rep < 3; rep++) {
+      NUMS.forEach(n => {
+        const s = document.createElement('span');
+        s.textContent = n;
+        s.style.color = color;
+        reel.appendChild(s);
+      });
+    }
+    reel.style.transition = 'none';
+    reel.style.transform  = 'translateY(0px)';
+    wrap.appendChild(reel);
+    container.appendChild(wrap);
+    currentDigits.push('0');
+  }
+}
+
+function setSlotColor(color) {
+  document.querySelectorAll('.slot-reel span').forEach(s => s.style.color = color);
+}
+
+function animateDigit(slotEl, fromDigit, toDigit, delay, duration, color) {
+  const reel = slotEl.querySelector('.slot-reel');
+  const from = parseInt(fromDigit, 10);
+  const to   = parseInt(toDigit,   10);
+  let steps  = (to - from + 10) % 10;
+  if (steps === 0) steps = 10;
+  const startY = -(10 + from) * DIGIT_H;
+  const endY   = startY - steps * DIGIT_H;
+  reel.style.transition = 'none';
+  reel.style.transform  = `translateY(${startY}px)`;
+  reel.offsetHeight;
+  setTimeout(() => {
+    reel.style.transition = `transform ${duration}ms cubic-bezier(0.25,0.46,0.45,0.94)`;
+    reel.style.transform  = `translateY(${endY}px)`;
+    reel.querySelectorAll('span').forEach(s => s.style.color = color);
+  }, delay);
+}
+
+function rollElo(fromElo, toElo, color, isGain) {
+  const fromStr = String(fromElo);
+  const toStr   = String(toElo);
+  const maxLen  = Math.max(fromStr.length, toStr.length);
+  const from    = fromStr.padStart(maxLen, '0');
+  const to      = toStr.padStart(maxLen, '0');
+  if (currentDigits.length !== maxLen) buildSlots(maxLen, color);
+  else setSlotColor(color);
+  const slots   = document.querySelectorAll('.slot-digit');
+  const stagger = 80;
+  for (let i = 0; i < maxLen; i++) {
+    const delay = isGain ? (maxLen - 1 - i) * stagger : i * stagger;
+    animateDigit(slots[i], from[i] || '0', to[i] || '0', delay, 600, color);
+  }
+  currentDigits = to.split('');
+}
+
+
+let badgeTimer = null;
+function showBadge(diff) {
+  const el = document.getElementById('eloChange');
+  if (badgeTimer) clearTimeout(badgeTimer);
+  el.style.display = 'none';
+  el.className = 'elo-change';
+  el.offsetHeight;
+  el.textContent = (diff > 0 ? '+' : '') + diff;
+  el.className   = 'elo-change ' + (diff > 0 ? 'pos' : 'neg');
+  el.style.display = 'inline-block';
+  badgeTimer = setTimeout(() => { el.style.display = 'none'; }, 5600);
+}
+
+let USERNAME       = '';
+const REFRESH_RATE = 10;
+let lastElo        = null;
+let lastRankName   = null;
+let refreshTimer   = null;
+
+
+function loadUsername() {
+  const saved = localStorage.getItem('mcsr_username');
+  USERNAME = saved ? saved.trim() : '';
+}
+
+function openSettings() {
+  document.getElementById('usernameInput').value = USERNAME;
+  document.getElementById('settingsOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('usernameInput').focus(), 50);
+}
+
+function closeSettings() {
+  document.getElementById('settingsOverlay').classList.remove('open');
+}
+
+function saveSettings() {
+  const val = document.getElementById('usernameInput').value.trim();
+  if (!val) return;
+  localStorage.setItem('mcsr_username', val);
+  USERNAME = val;
+  document.getElementById('displayName').textContent = USERNAME;
+  closeSettings();
+  // Reset and re-poll with new username
+  lastElo = null;
+  lastRankName = null;
+  startPolling();
+}
+
+async function fetchStats() {
+  document.getElementById('errorMsg').textContent = '';
+  try {
+    const res  = await fetch(`https://api.mcsrranked.com/users/${encodeURIComponent(USERNAME)}`);
+    const json = await res.json();
+    if (!res.ok || json.status === 'error')
+      throw new Error(typeof json.data === 'string' ? json.data : 'User not found');
+    return json.data;
+  } catch(e) {
+    document.getElementById('errorMsg').textContent = e.message || 'Failed to fetch';
+    return null;
+  }
+}
+
+function msToTime(ms) {
+  if (!ms || ms <= 0) return '—';
+  const total = Math.floor(ms / 1000);
+  return `${Math.floor(total/60)}:${String(total%60).padStart(2,'0')}`;
+}
+
+function applyRank(rank, animate, oldRank) {
+  const rankEl = document.getElementById('rankName');
+  rankEl.textContent = rank.name.toUpperCase();
+  rankEl.style.color = rank.color;
+
+  if (animate && oldRank && oldRank.name !== rank.name) {
+    animateShatter(oldRank, rank);
+  } else if (!animate) {
+    const iconEl = document.getElementById('rankIcon');
+    iconEl.src   = rank.img;
+    iconEl.style.filter  = `drop-shadow(0 0 10px ${rank.glow})`;
+    iconEl.style.opacity = '1';
+    iconEl.style.transform = 'scale(1)';
+  }
+}
+
+async function updateDisplay() {
+  const data = await fetchStats();
+  if (!data) return;
+
+  const elo     = data.eloRate ?? 0;
+  const rank    = getRank(elo);
+  const oldRank = lastRankName ? RANKS.find(r => r.name === lastRankName) : null;
+
+  if (lastElo === null) {
+
+    const toStr = String(elo);
+    buildSlots(toStr.length, rank.color);
+    const slots = document.querySelectorAll('.slot-digit');
+    toStr.split('').forEach((d, i) => {
+      const reel = slots[i].querySelector('.slot-reel');
+      const endY = -(10 + parseInt(d, 10)) * DIGIT_H;
+      reel.style.transition = 'none';
+      reel.style.transform  = `translateY(${endY}px)`;
+      reel.querySelectorAll('span').forEach(s => s.style.color = rank.color);
+    });
+    currentDigits = toStr.split('');
+  } else if (elo !== lastElo) {
+
+    rollElo(lastElo, elo, rank.color, elo > lastElo);
+    showBadge(elo - lastElo);
+  } else {
+
+    setSlotColor(rank.color);
+  }
+
+  applyRank(rank, lastRankName !== null, oldRank);
+
+  lastElo      = elo;
+  lastRankName = rank.name;
+
+
+
+  const s      = data.statistics?.season ?? {};
+  const wins   = s.wins?.ranked  ?? 0;
+  const losses = s.loses?.ranked ?? 0;
+  const total  = wins + losses;
+  const wr     = total > 0 ? (wins / total * 100).toFixed(1) : '0.0';
+
+  document.getElementById('record').textContent  = `${wins}W ${losses}L`;
+  document.getElementById('winrate').textContent = `${wr}%`;
+  document.getElementById('wrBar').style.width   = `${wr}%`;
+
+  const bestTimeAch = data.achievements?.display?.find(a => a.id === 'bestTime');
+  const bestMs = bestTimeAch ? bestTimeAch.value : 0;
+  document.getElementById('bestTime').textContent = bestMs > 0 ? msToTime(bestMs) : '—';
+}
+
+function startPolling() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  updateDisplay();
+  refreshTimer = setInterval(updateDisplay, REFRESH_RATE * 100);
+}
+
+window.addEventListener('load', () => {
+  loadUsername();
+
+  document.getElementById('settingsBtn').addEventListener('click', openSettings);
+  document.getElementById('displayName').addEventListener('click', openSettings);
+  document.getElementById('cancelBtn').addEventListener('click', closeSettings);
+  document.getElementById('saveBtn').addEventListener('click', saveSettings);
+  document.getElementById('usernameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveSettings();
+    if (e.key === 'Escape') closeSettings();
+  });
+  document.getElementById('settingsOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('settingsOverlay')) closeSettings();
+  });
+
+  if (!USERNAME) { openSettings(); return; }
+  buildSlots(3, '#f5c842');
+  startPolling();
+});
+</script>
+</body>
+</html>
