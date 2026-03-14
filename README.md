@@ -25,7 +25,7 @@ A live ELO tracker overlay for [MCSR Ranked](https://mcsrranked.com) — designe
 
 1. In OBS, click **+** under Sources and select **Browser**
 2. Check **Local file** and browse to `MCSR_overlay.html`
-3. Set **Width** to `420` and **Height** to `220`
+3. Set **Width** to `420` and **Height** to `260`
 4. Click **OK**
 
 
