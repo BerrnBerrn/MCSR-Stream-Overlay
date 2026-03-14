@@ -387,6 +387,60 @@
   .btn-save:hover { opacity: 0.85; }
   .username { cursor: pointer; }
   .username:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  /* ── Recent Seeds Bar ─────────────────────────────── */
+  .seeds-section {
+    margin-top: 8px;
+    padding: 8px 14px 8px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  .seeds-label {
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .seeds-row {
+    display: flex;
+    gap: 5px;
+    justify-content: space-between;
+  }
+  .seed-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+  .seed-icon-wrap {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+  .seed-result-bar {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    transition: background 0.4s;
+  }
+  .seed-result-bar.win  { background: var(--green); box-shadow: 0 0 6px rgba(74,255,140,0.5); }
+  .seed-result-bar.loss { background: var(--red);   box-shadow: 0 0 6px rgba(255,79,79,0.4); }
+  .seed-result-bar.draw { background: #f5c842;      box-shadow: 0 0 6px rgba(245,200,66,0.4); }
+  .seed-result-bar.empty { background: rgba(255,255,255,0.08); box-shadow: none; }
+  .seed-icon-wrap.win  { border-color: rgba(74,255,140,0.25); }
+  .seed-icon-wrap.loss { border-color: rgba(255,79,79,0.2); }
+  .seed-icon-wrap.draw { border-color: rgba(245,200,66,0.25); }
+  .seed-icon-wrap.empty { opacity: 0.35; }
 </style>
 </head>
 <body>
@@ -451,6 +505,10 @@
   </div>
 
   <div class="error-msg" id="errorMsg"></div>
+
+  <div class="seeds-section" id="seedsSection" style="display:none">
+    <div class="seeds-row" id="seedsRow"></div>
+  </div>
 
 </div>
 
@@ -794,6 +852,246 @@ function saveSettings() {
   startPolling();
 }
 
+async function fetchRecentMatches() {
+  try {
+    const res  = await fetch(`https://api.mcsrranked.com/users/${encodeURIComponent(USERNAME)}/matches?count=10&type=2`);
+    const json = await res.json();
+    if (!res.ok || json.status === 'error') return [];
+    return Array.isArray(json.data) ? json.data : [];
+  } catch(e) { return []; }
+}
+
+// Pixel-art SVG icon data for each seed type
+const SEED_ICONS = {
+  village: {
+    label: 'Village',
+    // House with brown roof, tan walls, door
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="2" y="7" width="12" height="8" fill="#c8a96e"/>
+      <rect x="0" y="5" width="16" height="4" fill="#7b4f2e"/>
+      <rect x="6" y="11" width="4" height="4" fill="#5c3d1e"/>
+      <rect x="4" y="8" width="3" height="3" fill="#8ecae6"/>
+      <rect x="9" y="8" width="3" height="3" fill="#8ecae6"/>
+      <rect x="6" y="2" width="4" height="4" fill="#7b4f2e"/>
+      <rect x="5" y="1" width="6" height="2" fill="#7b4f2e"/>
+      <rect x="7" y="0" width="2" height="2" fill="#7b4f2e"/>
+    </svg>`
+  },
+  ruined_portal: {
+    label: 'Ruined Portal',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="1" y="2" width="3" height="12" fill="#5a2d82"/>
+      <rect x="12" y="2" width="3" height="12" fill="#5a2d82"/>
+      <rect x="1" y="2" width="14" height="3" fill="#5a2d82"/>
+      <rect x="4" y="5" width="8" height="7" fill="#9b5dbd" opacity="0.7"/>
+      <rect x="4" y="5" width="8" height="7" fill="#c084fc" opacity="0.4"/>
+      <rect x="2" y="13" width="4" height="2" fill="#4a4a4a"/>
+      <rect x="10" y="1" width="3" height="2" fill="#4a4a4a"/>
+    </svg>`
+  },
+  desert_temple: {
+    label: 'Desert Temple',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="0" y="6" width="16" height="10" fill="#e9c46a"/>
+      <rect x="2" y="4" width="12" height="4" fill="#e9c46a"/>
+      <rect x="4" y="2" width="8" height="4" fill="#e9c46a"/>
+      <rect x="6" y="0" width="4" height="3" fill="#e9c46a"/>
+      <rect x="1" y="6" width="2" height="4" fill="#264653"/>
+      <rect x="13" y="6" width="2" height="4" fill="#264653"/>
+      <rect x="6" y="9" width="4" height="7" fill="#264653"/>
+      <rect x="3" y="4" width="2" height="2" fill="#2a9d8f"/>
+      <rect x="11" y="4" width="2" height="2" fill="#2a9d8f"/>
+      <rect x="3" y="7" width="10" height="1" fill="#2a9d8f"/>
+    </svg>`
+  },
+  shipwreck: {
+    label: 'Shipwreck',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="0" y="10" width="16" height="3" fill="#219ebc"/>
+      <rect x="0" y="13" width="16" height="3" fill="#0077b6"/>
+      <rect x="1" y="7" width="14" height="4" fill="#7b4f2e"/>
+      <rect x="3" y="5" width="10" height="3" fill="#9c6b3c"/>
+      <rect x="5" y="3" width="6" height="3" fill="#7b4f2e"/>
+      <rect x="8" y="1" width="2" height="3" fill="#9c6b3c"/>
+      <rect x="7" y="1" width="1" height="7" fill="#c8a96e"/>
+      <rect x="7" y="1" width="5" height="1" fill="#c8a96e"/>
+      <rect x="2" y="8" width="2" height="2" fill="#5c3d1e"/>
+    </svg>`
+  },
+  buried_treasure: {
+    label: 'Buried Treasure',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="2" y="6" width="12" height="8" fill="#7b4f2e"/>
+      <rect x="2" y="6" width="12" height="2" fill="#9c6b3c"/>
+      <rect x="2" y="6" width="12" height="1" fill="#c8a96e"/>
+      <rect x="6" y="7" width="4" height="1" fill="#f5c842"/>
+      <rect x="4" y="8" width="8" height="6" fill="#5c3d1e"/>
+      <rect x="5" y="9" width="2" height="2" fill="#f5c842"/>
+      <rect x="9" y="9" width="2" height="2" fill="#f5c842"/>
+      <rect x="6" y="10" width="4" height="2" fill="#f5c842"/>
+      <rect x="7" y="9" width="2" height="4" fill="#f5c842"/>
+      <rect x="0" y="12" width="16" height="4" fill="#8b7355"/>
+      <rect x="4" y="11" width="8" height="1" fill="#8b7355" opacity="0.5"/>
+    </svg>`
+  },
+  ocean_ruin: {
+    label: 'Ocean Ruin',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="0" y="0" width="16" height="16" fill="#0077b6"/>
+      <rect x="2" y="4" width="4" height="10" fill="#7b8c7c"/>
+      <rect x="10" y="6" width="4" height="8" fill="#7b8c7c"/>
+      <rect x="6" y="7" width="4" height="7" fill="#5a6b5a"/>
+      <rect x="2" y="4" width="4" height="1" fill="#9aab9a"/>
+      <rect x="10" y="6" width="4" height="1" fill="#9aab9a"/>
+      <rect x="0" y="10" width="16" height="2" fill="#219ebc" opacity="0.5"/>
+      <rect x="3" y="8" width="2" height="3" fill="#264653"/>
+    </svg>`
+  },
+  fortress: {
+    label: 'Nether Fortress',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="0" y="0" width="16" height="16" fill="#2d0a00"/>
+      <rect x="1" y="4" width="3" height="11" fill="#7b1c1c"/>
+      <rect x="12" y="4" width="3" height="11" fill="#7b1c1c"/>
+      <rect x="4" y="6" width="8" height="9" fill="#7b1c1c"/>
+      <rect x="1" y="4" width="14" height="3" fill="#9b2c2c"/>
+      <rect x="1" y="2" width="2" height="3" fill="#9b2c2c"/>
+      <rect x="4" y="2" width="2" height="3" fill="#9b2c2c"/>
+      <rect x="13" y="2" width="2" height="3" fill="#9b2c2c"/>
+      <rect x="10" y="2" width="2" height="3" fill="#9b2c2c"/>
+      <rect x="6" y="9" width="4" height="6" fill="#1a0500"/>
+      <rect x="5" y="7" width="6" height="1" fill="#c0392b"/>
+    </svg>`
+  },
+  bastion_treasure: {
+    label: 'Treasure Bastion',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="0" y="0" width="16" height="16" fill="#2d1b00"/>
+      <rect x="1" y="3" width="14" height="12" fill="#4a3000"/>
+      <rect x="1" y="3" width="14" height="3" fill="#6b4500"/>
+      <rect x="0" y="1" width="16" height="3" fill="#8b6500"/>
+      <rect x="3" y="6" width="4" height="4" fill="#f5c842"/>
+      <rect x="9" y="6" width="4" height="4" fill="#f5c842"/>
+      <rect x="6" y="8" width="4" height="7" fill="#2d1b00"/>
+      <rect x="4" y="3" width="2" height="1" fill="#f5c842"/>
+      <rect x="10" y="3" width="2" height="1" fill="#f5c842"/>
+    </svg>`
+  },
+  bastion_housing: {
+    label: 'Housing Bastion',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="0" y="0" width="16" height="16" fill="#2d1b00"/>
+      <rect x="0" y="5" width="16" height="11" fill="#4a3000"/>
+      <rect x="2" y="5" width="12" height="2" fill="#6b4500"/>
+      <rect x="0" y="3" width="7" height="4" fill="#5a3800"/>
+      <rect x="9" y="2" width="7" height="5" fill="#5a3800"/>
+      <rect x="2" y="8" width="3" height="3" fill="#2d1b00"/>
+      <rect x="7" y="8" width="3" height="3" fill="#2d1b00"/>
+      <rect x="12" y="8" width="3" height="3" fill="#2d1b00"/>
+    </svg>`
+  },
+  bastion_bridge: {
+    label: 'Bridge Bastion',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="0" y="0" width="16" height="16" fill="#2d1b00"/>
+      <rect x="0" y="7" width="16" height="3" fill="#6b4500"/>
+      <rect x="0" y="6" width="16" height="1" fill="#8b6500"/>
+      <rect x="0" y="10" width="16" height="1" fill="#8b6500"/>
+      <rect x="2" y="2" width="3" height="9" fill="#4a3000"/>
+      <rect x="11" y="2" width="3" height="9" fill="#4a3000"/>
+      <rect x="2" y="1" width="3" height="2" fill="#6b4500"/>
+      <rect x="11" y="1" width="3" height="2" fill="#6b4500"/>
+      <rect x="0" y="11" width="16" height="5" fill="#ff6b00" opacity="0.3"/>
+    </svg>`
+  },
+  bastion_stable: {
+    label: 'Stable Bastion',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="0" y="0" width="16" height="16" fill="#2d1b00"/>
+      <rect x="1" y="4" width="14" height="11" fill="#4a3000"/>
+      <rect x="1" y="4" width="14" height="2" fill="#6b4500"/>
+      <rect x="3" y="6" width="4" height="5" fill="#2d1b00"/>
+      <rect x="9" y="6" width="4" height="5" fill="#2d1b00"/>
+      <rect x="1" y="2" width="3" height="3" fill="#5a3800"/>
+      <rect x="12" y="2" width="3" height="3" fill="#5a3800"/>
+      <rect x="6" y="11" width="4" height="4" fill="#2d1b00"/>
+    </svg>`
+  },
+  unknown: {
+    label: 'Unknown',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="4" y="2" width="8" height="2" fill="#888"/>
+      <rect x="2" y="4" width="4" height="2" fill="#888"/>
+      <rect x="10" y="4" width="4" height="2" fill="#888"/>
+      <rect x="2" y="6" width="2" height="4" fill="#888"/>
+      <rect x="12" y="6" width="2" height="4" fill="#888"/>
+      <rect x="4" y="10" width="4" height="2" fill="#888"/>
+      <rect x="6" y="8" width="4" height="2" fill="#888"/>
+      <rect x="6" y="12" width="4" height="2" fill="#888"/>
+    </svg>`
+  }
+};
+
+function getSeedIcon(seed) {
+  if (!seed || !seed.overworld) return SEED_ICONS.unknown;
+  const ow = seed.overworld.toLowerCase();
+  const ne = (seed.nether || '').toLowerCase();
+  if (ow.includes('village'))         return SEED_ICONS.village;
+  if (ow.includes('ruined_portal'))   return SEED_ICONS.ruined_portal;
+  if (ow.includes('desert_temple') || ow.includes('desert_pyramid')) return SEED_ICONS.desert_temple;
+  if (ow.includes('shipwreck'))       return SEED_ICONS.shipwreck;
+  if (ow.includes('buried_treasure')) return SEED_ICONS.buried_treasure;
+  if (ow.includes('ocean_ruin'))      return SEED_ICONS.ocean_ruin;
+  if (ow.includes('fortress') || ne.includes('fortress')) return SEED_ICONS.fortress;
+  if (ne.includes('treasure'))        return SEED_ICONS.bastion_treasure;
+  if (ne.includes('housing'))         return SEED_ICONS.bastion_housing;
+  if (ne.includes('bridge'))          return SEED_ICONS.bastion_bridge;
+  if (ne.includes('stable'))          return SEED_ICONS.bastion_stable;
+  return SEED_ICONS.unknown;
+}
+
+function updateSeeds(matches, playerUUID) {
+  const row = document.getElementById('seedsRow');
+  const section = document.getElementById('seedsSection');
+  if (!matches.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  row.innerHTML = '';
+
+  // Pad to 10 slots
+  const slots = [...matches];
+  while (slots.length < 10) slots.push(null);
+
+  slots.forEach(match => {
+    const item = document.createElement('div');
+    item.className = 'seed-item';
+
+    const bar = document.createElement('div');
+    bar.className = 'seed-result-bar';
+
+    if (!match) {
+      bar.classList.add('empty');
+    } else {
+      const winnerUUID = match.result?.uuid;
+      let result = 'draw';
+      if (winnerUUID === null || winnerUUID === undefined) {
+        result = 'draw';
+      } else if (winnerUUID === playerUUID) {
+        result = 'win';
+      } else {
+        result = 'loss';
+      }
+      if (match.forfeited) {
+        const ourChange = match.changes?.find(c => c.uuid === playerUUID);
+        result = ourChange && ourChange.change < 0 ? 'loss' : 'draw';
+      }
+      bar.classList.add(result);
+    }
+
+    item.appendChild(bar);
+    row.appendChild(item);
+  });
+}
+
 async function fetchStats() {
   document.getElementById('errorMsg').textContent = '';
   try {
@@ -880,6 +1178,9 @@ async function updateDisplay() {
   const bestTimeAch = data.achievements?.display?.find(a => a.id === 'bestTime');
   const bestMs = bestTimeAch ? bestTimeAch.value : 0;
   document.getElementById('bestTime').textContent = bestMs > 0 ? msToTime(bestMs) : '—';
+
+  const matches = await fetchRecentMatches();
+  updateSeeds(matches, data.uuid);
 }
 
 function startPolling() {
