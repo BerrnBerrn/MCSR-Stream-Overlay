@@ -286,8 +286,7 @@
     min-height: 8px;
   }
 
-
-  /* Settings gear button */
+  
   .settings-btn {
     position: absolute;
     top: 10px; right: 10px;
@@ -304,23 +303,24 @@
   }
   .settings-btn:hover { color: var(--gold); background: rgba(245,200,66,0.08); }
 
+  
   .settings-overlay {
     display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.75);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
+    width: 100%;
+    background: transparent;
+    z-index: 1000;
+    padding: 10px 0;
+    box-sizing: border-box;
   }
-  .settings-overlay.open { display: flex; }
+  .settings-overlay.open { display: block; }
 
   .settings-modal {
     background: #13131a;
     border: 1px solid rgba(245,200,66,0.25);
     border-radius: 5px;
     padding: 22px 24px 20px;
-    width: 300px;
+    width: 100%;
+    box-sizing: border-box;
     box-shadow: 0 0 40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.04);
     position: relative;
   }
@@ -388,7 +388,7 @@
   .username { cursor: pointer; }
   .username:hover { text-decoration: underline; text-underline-offset: 3px; }
 
-  /* ── Recent Seeds Bar ─────────────────────────────── */
+  
   .seeds-section {
     margin-top: 8px;
     padding: 8px 14px 8px;
@@ -435,23 +435,283 @@
   }
   .seed-result-bar.win  { background: var(--green); box-shadow: 0 0 6px rgba(74,255,140,0.5); }
   .seed-result-bar.loss { background: var(--red);   box-shadow: 0 0 6px rgba(255,79,79,0.4); }
-  .seed-result-bar.draw { background: #f5c842;      box-shadow: 0 0 6px rgba(245,200,66,0.4); }
+  .seed-result-bar.draw { background: #4a90d8;      box-shadow: 0 0 6px rgba(74,144,216,0.5); }
   .seed-result-bar.empty { background: rgba(255,255,255,0.08); box-shadow: none; }
   .seed-icon-wrap.win  { border-color: rgba(74,255,140,0.25); }
   .seed-icon-wrap.loss { border-color: rgba(255,79,79,0.2); }
-  .seed-icon-wrap.draw { border-color: rgba(245,200,66,0.25); }
+  .seed-icon-wrap.draw { border-color: rgba(74,144,216,0.25); }
   .seed-icon-wrap.empty { opacity: 0.35; }
+
+  
+  .cfg-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding-bottom: 10px;
+  }
+  .cfg-tab {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    padding: 6px 12px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    background: rgba(255,255,255,0.05);
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .cfg-tab:hover { color: var(--text); background: rgba(255,255,255,0.1); }
+  .cfg-tab.active { background: rgba(245,200,66,0.12); color: var(--gold); border-color: rgba(245,200,66,0.3); }
+  .mode-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    padding: 8px 16px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.12);
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    background: rgba(255,255,255,0.05);
+    color: var(--muted);
+    transition: all 0.15s;
+    flex: 1;
+  }
+  .mode-btn:hover { color: var(--text); background: rgba(255,255,255,0.1); }
+  .mode-btn.active { background: rgba(245,200,66,0.12); color: var(--gold); border-color: rgba(245,200,66,0.3); }
+
+  .widget-slots { display: flex; flex-direction: column; gap: 10px; }
+  .widget-slot { position: relative; }
+  .settings-modal { max-width: 420px; }
+
+  
+  .custom-dd {
+    position: relative;
+    width: 100%;
+    user-select: none;
+  }
+  .custom-dd-selected {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 3px;
+    color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .custom-dd-selected:hover,
+  .custom-dd.open .custom-dd-selected {
+    border-color: rgba(74,240,216,0.5);
+    background: rgba(255,255,255,0.08);
+  }
+  .custom-dd-arrow {
+    font-size: 8px;
+    color: var(--muted);
+    transition: transform 0.15s;
+  }
+  .custom-dd.open .custom-dd-arrow { transform: rotate(180deg); }
+  .custom-dd-list {
+    display: none;
+    position: absolute;
+    top: calc(100% + 3px);
+    left: 0; right: 0;
+    background: #1a1a24;
+    border: 1px solid rgba(74,240,216,0.3);
+    border-radius: 3px;
+    z-index: 200;
+    max-height: 180px;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+  }
+  .custom-dd.open .custom-dd-list { display: block; }
+  .custom-dd-list::-webkit-scrollbar { width: 4px; }
+  .custom-dd-list::-webkit-scrollbar-track { background: transparent; }
+  .custom-dd-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+  .custom-dd-item {
+    padding: 8px 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .custom-dd-item:hover { background: rgba(74,240,216,0.1); color: var(--cyan); }
+  .custom-dd-item.selected { color: var(--gold); background: rgba(245,200,66,0.08); }
+
+  
+  .tracker.compact {
+    padding: 0;
+    width: 420px;
+    border-radius: 4px;
+    overflow: hidden;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+  }
+  .tracker.compact::before { display: none; }
+  .tracker.compact::after { display: none; }
+
+  .compact-bar {
+    display: none;
+    align-items: center;
+    gap: 0;
+    height: 48px;
+    padding: 0 10px 0 8px;
+  }
+  .tracker.compact .compact-bar { display: flex; }
+
+  
+  .tracker.compact .header,
+  .tracker.compact .elo-section,
+  .tracker.compact .stats-row,
+  .tracker.compact .error-msg,
+  .tracker.compact .seeds-section,
+  .tracker.compact .settings-btn { display: none !important; }
+
+  .compact-icon {
+    width: 32px;
+    height: 32px;
+    image-rendering: pixelated;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .compact-elo {
+    font-family: var(--pixel);
+    font-size: 13px;
+    color: var(--gold);
+    text-shadow: 0 0 10px var(--gold-glow);
+    margin-left: 8px;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
+  }
+  .compact-rank {
+    font-family: var(--pixel);
+    font-size: 6px;
+    margin-left: 7px;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+  .compact-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--border);
+    margin: 0 8px;
+    flex-shrink: 0;
+  }
+  .compact-stats {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex: 1;
+    overflow: hidden;
+  }
+  .compact-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    min-width: 0;
+  }
+  .compact-stat-label {
+    font-size: 6px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .compact-stat-value {
+    font-family: var(--pixel);
+    font-size: 7px;
+    white-space: nowrap;
+  }
+  .compact-stat:nth-child(1) .compact-stat-value { color: var(--gold); }
+  .compact-stat:nth-child(2) .compact-stat-value { color: var(--cyan); }
+  .compact-stat:nth-child(3) .compact-stat-value { color: var(--green); }
+  .compact-gear {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px 6px;
+    border-radius: 3px;
+    transition: color 0.2s;
+    margin-left: 4px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .compact-gear:hover { color: var(--gold); }
+  .compact-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+    margin-left: 4px;
+  }
 </style>
 </head>
 <body>
-<div class="tracker">
-<button class="settings-btn" id="settingsBtn" title="Settings">⚙</button>
-
 <div class="settings-overlay" id="settingsOverlay">
   <div class="settings-modal">
     <div class="settings-title">⚙ SETTINGS</div>
-    <div class="settings-label">Minecraft Username</div>
-    <input class="settings-input" id="usernameInput" type="text" placeholder="Enter your username..." spellcheck="false" />
+    <div class="cfg-tabs">
+      <button class="cfg-tab active" id="tabUser" onclick="switchTab('user')">USERNAME</button>
+      <button class="cfg-tab" id="tabWidgets" onclick="switchTab('widgets')">WIDGETS</button>
+      <button class="cfg-tab" id="tabDisplay" onclick="switchTab('display')">DISPLAY</button>
+    </div>
+
+    
+    <div id="panelUser">
+      <div class="settings-label">Minecraft Username</div>
+      <input class="settings-input" id="usernameInput" type="text" placeholder="Enter your username..." spellcheck="false" />
+    </div>
+
+    
+    <div id="panelWidgets" style="display:none">
+      <div class="widget-slots">
+        <div class="widget-slot">
+          <div class="settings-label">WIDGET 1</div>
+          <div class="custom-dd" id="dd0">
+            <div class="custom-dd-selected" id="dd0-selected"><span id="dd0-label">—</span><span class="custom-dd-arrow">▼</span></div>
+            <div class="custom-dd-list" id="dd0-list"></div>
+          </div>
+        </div>
+        <div class="widget-slot">
+          <div class="settings-label">WIDGET 2</div>
+          <div class="custom-dd" id="dd1">
+            <div class="custom-dd-selected" id="dd1-selected"><span id="dd1-label">—</span><span class="custom-dd-arrow">▼</span></div>
+            <div class="custom-dd-list" id="dd1-list"></div>
+          </div>
+        </div>
+        <div class="widget-slot">
+          <div class="settings-label">WIDGET 3</div>
+          <div class="custom-dd" id="dd2">
+            <div class="custom-dd-selected" id="dd2-selected"><span id="dd2-label">—</span><span class="custom-dd-arrow">▼</span></div>
+            <div class="custom-dd-list" id="dd2-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    
+    <div id="panelDisplay" style="display:none">
+      <div class="settings-label" style="margin-bottom:12px">OVERLAY MODE</div>
+      <div style="display:flex;gap:8px">
+        <button class="mode-btn" id="modeNormal">FULL</button>
+        <button class="mode-btn" id="modeCompact">COMPACT</button>
+      </div>
+      <div class="settings-label" style="margin-top:14px;margin-bottom:4px;font-size:7px;color:var(--muted)">
+        Compact: single bar with ELO + stats
+      </div>
+    </div>
+
     <div class="settings-actions">
       <button class="btn btn-cancel" id="cancelBtn">CANCEL</button>
       <button class="btn btn-save" id="saveBtn">SAVE</button>
@@ -459,6 +719,23 @@
   </div>
 </div>
 
+<div class="tracker">
+<button class="settings-btn" id="settingsBtn" title="Settings">⚙</button>
+
+  
+  <div class="compact-bar">
+    <img class="compact-icon" id="compactIcon" src="" alt="rank" />
+    <span class="compact-elo" id="compactElo">—</span>
+    <span class="compact-rank" id="compactRank">—</span>
+    <div class="compact-divider"></div>
+    <div class="compact-stats">
+      <div class="compact-stat"><div class="compact-stat-label" id="clabel0">—</div><div class="compact-stat-value" id="cval0">—</div></div>
+      <div class="compact-stat"><div class="compact-stat-label" id="clabel1">—</div><div class="compact-stat-value" id="cval1">—</div></div>
+      <div class="compact-stat"><div class="compact-stat-label" id="clabel2">—</div><div class="compact-stat-value" id="cval2">—</div></div>
+    </div>
+    <div class="compact-dot"></div>
+    <button class="compact-gear" id="compactSettingsBtn" title="Settings">⚙</button>
+  </div>
 
   <div class="header">
     <div>
@@ -486,22 +763,10 @@
     </div>
   </div>
 
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-label">BEST TIME</div>
-      <div class="stat-value" id="bestTime">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">RECORD</div>
-      <div class="stat-value" id="record">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">WIN RATE</div>
-      <div class="stat-value" id="winrate">—</div>
-      <div class="wr-bar-bg">
-        <div class="wr-bar-fill" id="wrBar" style="width:0%"></div>
-      </div>
-    </div>
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card"><div class="stat-label" id="label0">—</div><div class="stat-value" id="val0">—</div><div class="wr-bar-bg" id="bar0wrap" style="display:none"><div class="wr-bar-fill" id="bar0" style="width:0%"></div></div></div>
+    <div class="stat-card"><div class="stat-label" id="label1">—</div><div class="stat-value" id="val1">—</div><div class="wr-bar-bg" id="bar1wrap" style="display:none"><div class="wr-bar-fill" id="bar1" style="width:0%"></div></div></div>
+    <div class="stat-card"><div class="stat-label" id="label2">—</div><div class="stat-value" id="val2">—</div><div class="wr-bar-bg" id="bar2wrap" style="display:none"><div class="wr-bar-fill" id="bar2" style="width:0%"></div></div></div>
   </div>
 
   <div class="error-msg" id="errorMsg"></div>
@@ -515,14 +780,38 @@
 <script>
 const BASE = 'https://mcsrrankedtracker.vercel.app/images/ranks/';
 const RANKS = [
-  { name: 'Coal',      min: 0,    max: 599,      color: '#aaaaaa', glow: '#cccccc', img: BASE+'coal.png'      },
-  { name: 'Iron',      min: 600,  max: 899,      color: '#d4d4d4', glow: '#f0f0f0', img: BASE+'iron.png'      },
-  { name: 'Gold',      min: 900,  max: 1199,     color: '#f5c842', glow: '#ffd966', img: BASE+'gold.png'      },
-  { name: 'Emerald',   min: 1200, max: 1499,     color: '#4aff8c', glow: '#7fffb0', img: BASE+'emerald.png'   },
-  { name: 'Diamond',   min: 1500, max: 1999,     color: '#4af0d8', glow: '#7fffd4', img: BASE+'diamond.png'   },
-  { name: 'Netherite', min: 2000, max: Infinity, color: '#c0a0ff', glow: '#dfc0ff', img: BASE+'netherite.png' },
+  
+  { name: 'Coal',      tier: 'Coal',      div: 1, min: 0,    max: 199,      color: '#aaaaaa', glow: '#cccccc', img: BASE+'coal.png'      },
+  { name: 'Coal',      tier: 'Coal',      div: 2, min: 200,  max: 399,      color: '#aaaaaa', glow: '#cccccc', img: BASE+'coal.png'      },
+  { name: 'Coal',      tier: 'Coal',      div: 3, min: 400,  max: 599,      color: '#aaaaaa', glow: '#cccccc', img: BASE+'coal.png'      },
+  
+  { name: 'Iron',      tier: 'Iron',      div: 1, min: 600,  max: 699,      color: '#d4d4d4', glow: '#f0f0f0', img: BASE+'iron.png'      },
+  { name: 'Iron',      tier: 'Iron',      div: 2, min: 700,  max: 799,      color: '#d4d4d4', glow: '#f0f0f0', img: BASE+'iron.png'      },
+  { name: 'Iron',      tier: 'Iron',      div: 3, min: 800,  max: 899,      color: '#d4d4d4', glow: '#f0f0f0', img: BASE+'iron.png'      },
+  
+  { name: 'Gold',      tier: 'Gold',      div: 1, min: 900,  max: 999,      color: '#f5c842', glow: '#ffd966', img: BASE+'gold.png'      },
+  { name: 'Gold',      tier: 'Gold',      div: 2, min: 1000, max: 1099,     color: '#f5c842', glow: '#ffd966', img: BASE+'gold.png'      },
+  { name: 'Gold',      tier: 'Gold',      div: 3, min: 1100, max: 1199,     color: '#f5c842', glow: '#ffd966', img: BASE+'gold.png'      },
+  
+  { name: 'Emerald',   tier: 'Emerald',   div: 1, min: 1200, max: 1299,     color: '#4aff8c', glow: '#7fffb0', img: BASE+'emerald.png'   },
+  { name: 'Emerald',   tier: 'Emerald',   div: 2, min: 1300, max: 1399,     color: '#4aff8c', glow: '#7fffb0', img: BASE+'emerald.png'   },
+  { name: 'Emerald',   tier: 'Emerald',   div: 3, min: 1400, max: 1499,     color: '#4aff8c', glow: '#7fffb0', img: BASE+'emerald.png'   },
+  
+  { name: 'Diamond',   tier: 'Diamond',   div: 1, min: 1500, max: 1666,     color: '#4af0d8', glow: '#7fffd4', img: BASE+'diamond.png'   },
+  { name: 'Diamond',   tier: 'Diamond',   div: 2, min: 1667, max: 1833,     color: '#4af0d8', glow: '#7fffd4', img: BASE+'diamond.png'   },
+  { name: 'Diamond',   tier: 'Diamond',   div: 3, min: 1834, max: 1999,     color: '#4af0d8', glow: '#7fffd4', img: BASE+'diamond.png'   },
+  
+  { name: 'Netherite', tier: 'Netherite', div: 0, min: 2000, max: Infinity, color: '#c0a0ff', glow: '#dfc0ff', img: BASE+'netherite.png' },
 ];
-function getRank(elo) { return RANKS.find(r => elo >= r.min && elo <= r.max) || RANKS[0]; }
+
+function getRank(elo) {
+  return RANKS.find(r => elo >= r.min && elo <= r.max) || RANKS[0];
+}
+
+function getRankLabel(rank) {
+  if (rank.div === 0) return rank.tier;
+  return `${rank.tier} ${rank.div}`;
+}
 
 const imgCache = {};
 RANKS.forEach(r => {
@@ -670,7 +959,6 @@ function animateShatter(oldRank, newRank, onDone) {
         const t = (elapsed - SHAKE_DUR) / SHATTER_DUR;
         drawShardFrame(ctx, oldImg, shards, t);
 
-
         if (t > 0.4) {
           const revealT = (t - 0.4) / 0.6;
           iconEl.style.opacity = String(revealT);
@@ -698,7 +986,6 @@ function animateShatter(oldRank, newRank, onDone) {
     shatterAnimId = requestAnimationFrame(frame);
   });
 }
-
 
 function drawCracks(ctx, alpha, size) {
   ctx.save();
@@ -731,9 +1018,6 @@ function drawCracks(ctx, alpha, size) {
   });
   ctx.restore();
 }
-
-
-
 
 const DIGIT_H = 28;
 const NUMS = ['0','1','2','3','4','5','6','7','8','9'];
@@ -803,7 +1087,6 @@ function rollElo(fromElo, toElo, color, isGain) {
   currentDigits = to.split('');
 }
 
-
 let badgeTimer = null;
 function showBadge(diff) {
   const el = document.getElementById('eloChange');
@@ -823,16 +1106,17 @@ let lastElo        = null;
 let lastRankName   = null;
 let refreshTimer   = null;
 
-
 function loadUsername() {
   const saved = localStorage.getItem('mcsr_username');
   USERNAME = saved ? saved.trim() : '';
 }
 
-function openSettings() {
+function openSettings(tab) {
+  switchTab(tab || 'user');
   document.getElementById('usernameInput').value = USERNAME;
+  populateWidgetSelects();
   document.getElementById('settingsOverlay').classList.add('open');
-  setTimeout(() => document.getElementById('usernameInput').focus(), 50);
+  if (!tab || tab === 'user') setTimeout(() => document.getElementById('usernameInput').focus(), 50);
 }
 
 function closeSettings() {
@@ -842,13 +1126,23 @@ function closeSettings() {
 function saveSettings() {
   const val = document.getElementById('usernameInput').value.trim();
   if (!val) return;
+
+  const newUser = val !== USERNAME;
   localStorage.setItem('mcsr_username', val);
   USERNAME = val;
   document.getElementById('displayName').textContent = USERNAME;
+
+  
+  widgetConfig = [...ddValues];
+  saveWidgetConfig(widgetConfig);
+
+  localStorage.setItem('mcsr_compact', compactMode);
+  applyCompactMode();
   closeSettings();
-  // Reset and re-poll with new username
-  lastElo = null;
-  lastRankName = null;
+
+  if (newUser) {
+    lastElo = null; lastRankName = null;
+  }
   startPolling();
 }
 
@@ -861,11 +1155,10 @@ async function fetchRecentMatches() {
   } catch(e) { return []; }
 }
 
-// Pixel-art SVG icon data for each seed type
 const SEED_ICONS = {
   village: {
     label: 'Village',
-    // House with brown roof, tan walls, door
+    
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <rect x="2" y="7" width="12" height="8" fill="#c8a96e"/>
       <rect x="0" y="5" width="16" height="4" fill="#7b4f2e"/>
@@ -1057,7 +1350,7 @@ function updateSeeds(matches, playerUUID) {
   section.style.display = '';
   row.innerHTML = '';
 
-  // Pad to 10 slots
+  
   const slots = [...matches];
   while (slots.length < 10) slots.push(null);
 
@@ -1114,10 +1407,16 @@ function msToTime(ms) {
 
 function applyRank(rank, animate, oldRank) {
   const rankEl = document.getElementById('rankName');
-  rankEl.textContent = rank.name.toUpperCase();
+  rankEl.textContent = getRankLabel(rank).toUpperCase();
   rankEl.style.color = rank.color;
 
-  if (animate && oldRank && oldRank.name !== rank.name) {
+  
+  const compactRankEl = document.getElementById('compactRank');
+  compactRankEl.textContent = getRankLabel(rank).toUpperCase();
+  compactRankEl.style.color = rank.color;
+  document.getElementById('compactIcon').src = rank.img;
+
+  if (animate && oldRank && oldRank.tier !== rank.tier) {
     animateShatter(oldRank, rank);
   } else if (!animate) {
     const iconEl = document.getElementById('rankIcon');
@@ -1134,7 +1433,7 @@ async function updateDisplay() {
 
   const elo     = data.eloRate ?? 0;
   const rank    = getRank(elo);
-  const oldRank = lastRankName ? RANKS.find(r => r.name === lastRankName) : null;
+  const oldRank = lastRankName ? RANKS.find(r => getRankLabel(r) === lastRankName) : null;
 
   if (lastElo === null) {
 
@@ -1161,26 +1460,305 @@ async function updateDisplay() {
   applyRank(rank, lastRankName !== null, oldRank);
 
   lastElo      = elo;
-  lastRankName = rank.name;
-
-
-
-  const s      = data.statistics?.season ?? {};
-  const wins   = s.wins?.ranked  ?? 0;
-  const losses = s.loses?.ranked ?? 0;
-  const total  = wins + losses;
-  const wr     = total > 0 ? (wins / total * 100).toFixed(1) : '0.0';
-
-  document.getElementById('record').textContent  = `${wins}W ${losses}L`;
-  document.getElementById('winrate').textContent = `${wr}%`;
-  document.getElementById('wrBar').style.width   = `${wr}%`;
-
-  const bestTimeAch = data.achievements?.display?.find(a => a.id === 'bestTime');
-  const bestMs = bestTimeAch ? bestTimeAch.value : 0;
-  document.getElementById('bestTime').textContent = bestMs > 0 ? msToTime(bestMs) : '—';
+  lastRankName = getRankLabel(rank);
+  document.getElementById('compactElo').textContent = elo;
 
   const matches = await fetchRecentMatches();
   updateSeeds(matches, data.uuid);
+  renderWidgets(data, matches);
+}
+
+function isToday(epochSeconds) {
+  const d = new Date(epochSeconds * 1000);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() &&
+         d.getMonth()    === now.getMonth()    &&
+         d.getDate()     === now.getDate();
+}
+
+function todayMatches(matches) {
+  return matches.filter(m => m.date && isToday(m.date));
+}
+
+const WIDGET_DEFS = [
+  {
+    id: 'pb',
+    label: 'PB',
+    compute(data, matches) {
+      const ach = data.achievements?.display?.find(a => a.id === 'bestTime');
+      const ms = ach ? ach.value : 0;
+      return { value: ms > 0 ? msToTime(ms) : '—' };
+    }
+  },
+  {
+    id: 'wins',
+    label: 'WINS',
+    compute(data) {
+      const s = data.statistics?.season ?? {};
+      return { value: String(s.wins?.ranked ?? 0) };
+    }
+  },
+  {
+    id: 'losses',
+    label: 'LOSSES',
+    compute(data) {
+      const s = data.statistics?.season ?? {};
+      return { value: String(s.loses?.ranked ?? 0) };
+    }
+  },
+  {
+    id: 'winrate',
+    label: 'WIN RATE',
+    compute(data) {
+      const s = data.statistics?.season ?? {};
+      const w = s.wins?.ranked ?? 0;
+      const l = s.loses?.ranked ?? 0;
+      const t = w + l;
+      const wr = t > 0 ? (w / t * 100).toFixed(1) : '0.0';
+      return { value: `${wr}%`, bar: parseFloat(wr) };
+    }
+  },
+  {
+    id: 'record',
+    label: 'RECORD',
+    compute(data) {
+      const s = data.statistics?.season ?? {};
+      const w = s.wins?.ranked ?? 0;
+      const l = s.loses?.ranked ?? 0;
+      return { value: `${w}W ${l}L` };
+    }
+  },
+  {
+    id: 'avg_time',
+    label: 'AVG TIME',
+    compute(data, matches) {
+      const times = matches
+        .filter(m => m.result?.uuid !== null && !m.forfeited)
+        .map(m => m.result?.time)
+        .filter(Boolean);
+      if (!times.length) return { value: '—' };
+      return { value: msToTime(Math.round(times.reduce((a,b)=>a+b,0)/times.length)) };
+    }
+  },
+  {
+    id: 'today_best',
+    label: 'TODAY PB',
+    compute(data, matches) {
+      const times = todayMatches(matches)
+        .filter(m => m.result?.uuid === data.uuid)
+        .map(m => m.result.time).filter(Boolean);
+      if (!times.length) return { value: '—' };
+      return { value: msToTime(Math.min(...times)) };
+    }
+  },
+  {
+    id: 'today_avg',
+    label: 'TODAY AVG',
+    compute(data, matches) {
+      const times = todayMatches(matches)
+        .filter(m => !m.forfeited && m.result?.time)
+        .map(m => m.result.time);
+      if (!times.length) return { value: '—' };
+      return { value: msToTime(Math.round(times.reduce((a,b)=>a+b,0)/times.length)) };
+    }
+  },
+  {
+    id: 'today_wins',
+    label: 'TODAY WINS',
+    compute(data, matches) {
+      const w = todayMatches(matches).filter(m => m.result?.uuid === data.uuid).length;
+      return { value: String(w) };
+    }
+  },
+  {
+    id: 'today_losses',
+    label: 'TODAY LOSSES',
+    compute(data, matches) {
+      const l = todayMatches(matches).filter(m => m.result?.uuid && m.result.uuid !== data.uuid).length;
+      return { value: String(l) };
+    }
+  },
+  {
+    id: 'today_record',
+    label: 'TODAY W/L',
+    compute(data, matches) {
+      const today = todayMatches(matches);
+      const w = today.filter(m => m.result?.uuid === data.uuid).length;
+      const l = today.filter(m => m.result?.uuid && m.result.uuid !== data.uuid).length;
+      return { value: `${w}W ${l}L` };
+    }
+  },
+  {
+    id: 'today_winrate',
+    label: 'TODAY WR',
+    compute(data, matches) {
+      const today = todayMatches(matches);
+      const w = today.filter(m => m.result?.uuid === data.uuid).length;
+      const l = today.filter(m => m.result?.uuid && m.result.uuid !== data.uuid).length;
+      const t = w + l;
+      const wr = t > 0 ? (w / t * 100).toFixed(1) : '0.0';
+      return { value: `${wr}%`, bar: parseFloat(wr) };
+    }
+  },
+  {
+    id: 'today_games',
+    label: 'TODAY GAMES',
+    compute(data, matches) {
+      return { value: String(todayMatches(matches).length) };
+    }
+  },
+  {
+    id: 'elo_rank',
+    label: 'ELO RANK',
+    compute(data) {
+      return { value: data.eloRank ? `#${data.eloRank}` : '—' };
+    }
+  },
+  {
+    id: 'completions',
+    label: 'FINISHES',
+    compute(data) {
+      const s = data.statistics?.season ?? {};
+      const total = (s.wins?.ranked ?? 0) + (s.loses?.ranked ?? 0);
+      return { value: total > 0 ? String(total) : '—' };
+    }
+  },
+  {
+    id: 'streak',
+    label: 'WIN STREAK',
+    compute(data, matches) {
+      let streak = 0;
+      for (const m of matches) {
+        if (m.result?.uuid === data.uuid) streak++;
+        else break;
+      }
+      return { value: String(streak) };
+    }
+  },
+  {
+    id: 'last_elo',
+    label: 'LAST CHANGE',
+    compute(data, matches) {
+      const last = matches[0];
+      if (!last) return { value: '—' };
+      const ch = last.changes?.find(c => c.uuid === data.uuid);
+      if (!ch || ch.change == null) return { value: '—' };
+      return { value: ch.change > 0 ? `+${ch.change}` : String(ch.change) };
+    }
+  },
+  {
+    id: 'draws',
+    label: 'DRAWS',
+    compute(data, matches) {
+      const draws = matches.filter(m => m.result?.uuid === null && !m.forfeited).length;
+      return { value: String(draws) };
+    }
+  },
+  {
+    id: 'forfeits',
+    label: 'FORFEITS',
+    compute(data, matches) {
+      const ff = matches.filter(m => m.forfeited).length;
+      return { value: String(ff) };
+    }
+  },
+];
+
+const DEFAULT_WIDGETS = ['pb', 'record', 'winrate'];
+
+function loadWidgetConfig() {
+  try {
+    const saved = localStorage.getItem('mcsr_widgets');
+    return saved ? JSON.parse(saved) : [...DEFAULT_WIDGETS];
+  } catch { return [...DEFAULT_WIDGETS]; }
+}
+
+function saveWidgetConfig(cfg) {
+  localStorage.setItem('mcsr_widgets', JSON.stringify(cfg));
+}
+
+let widgetConfig = loadWidgetConfig();
+
+let ddValues = ['pb', 'record', 'winrate'];
+
+function closeAllDropdowns(except) {
+  [0,1,2].forEach(i => {
+    if (i !== except) document.getElementById(`dd${i}`).classList.remove('open');
+  });
+}
+
+function populateWidgetSelects() {
+  ddValues = [...widgetConfig];
+  [0,1,2].forEach(i => {
+    const list = document.getElementById(`dd${i}-list`);
+    const labelEl = document.getElementById(`dd${i}-label`);
+    list.innerHTML = '';
+
+    const currentDef = WIDGET_DEFS.find(d => d.id === ddValues[i]) || WIDGET_DEFS[0];
+    labelEl.textContent = currentDef.label;
+
+    WIDGET_DEFS.forEach(def => {
+      const item = document.createElement('div');
+      item.className = 'custom-dd-item' + (def.id === ddValues[i] ? ' selected' : '');
+      item.textContent = def.label;
+      item.addEventListener('click', () => {
+        ddValues[i] = def.id;
+        document.getElementById(`dd${i}-label`).textContent = def.label;
+        list.querySelectorAll('.custom-dd-item').forEach(el => el.classList.remove('selected'));
+        item.classList.add('selected');
+        document.getElementById(`dd${i}`).classList.remove('open');
+      });
+      list.appendChild(item);
+    });
+
+    const trigger = document.getElementById(`dd${i}-selected`);
+    trigger.onclick = (e) => {
+      e.stopPropagation();
+      const dd = document.getElementById(`dd${i}`);
+      const wasOpen = dd.classList.contains('open');
+      closeAllDropdowns(-1);
+      if (!wasOpen) dd.classList.add('open');
+    };
+  });
+
+  document.addEventListener('click', () => closeAllDropdowns(-1), { once: false });
+}
+
+function renderWidgets(data, matches) {
+  widgetConfig.forEach((id, i) => {
+    const def = WIDGET_DEFS.find(d => d.id === id);
+    if (!def) return;
+    const result = def.compute(data, matches);
+    document.getElementById(`label${i}`).textContent  = def.label;
+    document.getElementById(`val${i}`).textContent    = result.value;
+    document.getElementById(`clabel${i}`).textContent = def.label;
+    document.getElementById(`cval${i}`).textContent   = result.value;
+    const barWrap = document.getElementById(`bar${i}wrap`);
+    const bar     = document.getElementById(`bar${i}`);
+    if (result.bar != null) {
+      barWrap.style.display = '';
+      bar.style.width = `${result.bar}%`;
+    } else {
+      barWrap.style.display = 'none';
+    }
+  });
+}
+
+let compactMode = localStorage.getItem('mcsr_compact') === 'true';
+
+function applyCompactMode() {
+  document.querySelector('.tracker').classList.toggle('compact', compactMode);
+  document.getElementById('modeNormal').classList.toggle('active', !compactMode);
+  document.getElementById('modeCompact').classList.toggle('active', compactMode);
+}
+
+function switchTab(tab) {
+  document.getElementById('panelUser').style.display    = tab === 'user'    ? '' : 'none';
+  document.getElementById('panelWidgets').style.display = tab === 'widgets' ? '' : 'none';
+  document.getElementById('panelDisplay').style.display = tab === 'display' ? '' : 'none';
+  document.getElementById('tabUser').classList.toggle('active',    tab === 'user');
+  document.getElementById('tabWidgets').classList.toggle('active', tab === 'widgets');
+  document.getElementById('tabDisplay').classList.toggle('active', tab === 'display');
 }
 
 function startPolling() {
@@ -1193,17 +1771,24 @@ window.addEventListener('load', () => {
   loadUsername();
 
   document.getElementById('settingsBtn').addEventListener('click', openSettings);
+  document.getElementById('compactSettingsBtn').addEventListener('click', openSettings);
   document.getElementById('displayName').addEventListener('click', openSettings);
+  document.getElementById('modeNormal').addEventListener('click', () => {
+    compactMode = false;
+    applyCompactMode();
+  });
+  document.getElementById('modeCompact').addEventListener('click', () => {
+    compactMode = true;
+    applyCompactMode();
+  });
   document.getElementById('cancelBtn').addEventListener('click', closeSettings);
   document.getElementById('saveBtn').addEventListener('click', saveSettings);
   document.getElementById('usernameInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') saveSettings();
     if (e.key === 'Escape') closeSettings();
   });
-  document.getElementById('settingsOverlay').addEventListener('click', e => {
-    if (e.target === document.getElementById('settingsOverlay')) closeSettings();
-  });
 
+  applyCompactMode();
   if (!USERNAME) { openSettings(); return; }
   buildSlots(3, '#f5c842');
   startPolling();
