@@ -1336,6 +1336,24 @@ function getSeedIcon(seed) {
   return SEED_ICONS.unknown;
 }
 
+function getMatchResult(match, playerUUID) {
+  const ourChange = match.changes?.find(c => c.uuid === playerUUID);
+  const winnerUUID = match.result?.uuid;
+
+  if (match.forfeited) {
+    if (!ourChange) return 'loss';
+    return ourChange.change < 0 ? 'loss' : 'draw';
+  }
+
+  if (winnerUUID === undefined || winnerUUID === null) {
+    if (ourChange) return ourChange.change > 0 ? 'win' : ourChange.change < 0 ? 'loss' : 'draw';
+    return 'draw';
+  }
+
+  if (winnerUUID === playerUUID) return 'win';
+  return 'loss';
+}
+
 function updateSeeds(matches, playerUUID) {
   const row = document.getElementById('seedsRow');
   const section = document.getElementById('seedsSection');
@@ -1343,36 +1361,15 @@ function updateSeeds(matches, playerUUID) {
   section.style.display = '';
   row.innerHTML = '';
 
-  
-  const slots = [...matches];
-  while (slots.length < 10) slots.push(null);
+  const slots = [...matches].reverse();
+  while (slots.length < 10) slots.unshift(null);
 
   slots.forEach(match => {
     const item = document.createElement('div');
     item.className = 'seed-item';
-
     const bar = document.createElement('div');
     bar.className = 'seed-result-bar';
-
-    if (!match) {
-      bar.classList.add('empty');
-    } else {
-      const winnerUUID = match.result?.uuid;
-      let result = 'draw';
-      if (winnerUUID === null || winnerUUID === undefined) {
-        result = 'draw';
-      } else if (winnerUUID === playerUUID) {
-        result = 'win';
-      } else {
-        result = 'loss';
-      }
-      if (match.forfeited) {
-        const ourChange = match.changes?.find(c => c.uuid === playerUUID);
-        result = ourChange && ourChange.change < 0 ? 'loss' : 'draw';
-      }
-      bar.classList.add(result);
-    }
-
+    bar.classList.add(match ? getMatchResult(match, playerUUID) : 'empty');
     item.appendChild(bar);
     row.appendChild(item);
   });
@@ -1538,7 +1535,7 @@ const WIDGET_DEFS = [
     label: 'TODAY PB',
     compute(data, matches) {
       const times = todayMatches(matches)
-        .filter(m => m.result?.uuid === data.uuid)
+        .filter(m => getMatchResult(m, data.uuid) === 'win')
         .map(m => m.result.time).filter(Boolean);
       if (!times.length) return { value: '—' };
       return { value: msToTime(Math.min(...times)) };
@@ -1559,7 +1556,7 @@ const WIDGET_DEFS = [
     id: 'today_wins',
     label: 'TODAY WINS',
     compute(data, matches) {
-      const w = todayMatches(matches).filter(m => m.result?.uuid === data.uuid).length;
+      const w = todayMatches(matches).filter(m => getMatchResult(m, data.uuid) === 'win').length;
       return { value: String(w) };
     }
   },
@@ -1567,7 +1564,7 @@ const WIDGET_DEFS = [
     id: 'today_losses',
     label: 'TODAY LOSSES',
     compute(data, matches) {
-      const l = todayMatches(matches).filter(m => m.result?.uuid && m.result.uuid !== data.uuid).length;
+      const l = todayMatches(matches).filter(m => getMatchResult(m, data.uuid) === 'loss').length;
       return { value: String(l) };
     }
   },
@@ -1576,8 +1573,8 @@ const WIDGET_DEFS = [
     label: 'TODAY W/L',
     compute(data, matches) {
       const today = todayMatches(matches);
-      const w = today.filter(m => m.result?.uuid === data.uuid).length;
-      const l = today.filter(m => m.result?.uuid && m.result.uuid !== data.uuid).length;
+      const w = today.filter(m => getMatchResult(m, data.uuid) === 'win').length;
+      const l = today.filter(m => getMatchResult(m, data.uuid) === 'loss').length;
       return { value: `${w}W ${l}L` };
     }
   },
@@ -1586,8 +1583,8 @@ const WIDGET_DEFS = [
     label: 'TODAY WR',
     compute(data, matches) {
       const today = todayMatches(matches);
-      const w = today.filter(m => m.result?.uuid === data.uuid).length;
-      const l = today.filter(m => m.result?.uuid && m.result.uuid !== data.uuid).length;
+      const w = today.filter(m => getMatchResult(m, data.uuid) === 'win').length;
+      const l = today.filter(m => getMatchResult(m, data.uuid) === 'loss').length;
       const t = w + l;
       const wr = t > 0 ? (w / t * 100).toFixed(1) : '0.0';
       return { value: `${wr}%`, bar: parseFloat(wr) };
@@ -1622,7 +1619,7 @@ const WIDGET_DEFS = [
     compute(data, matches) {
       let streak = 0;
       for (const m of matches) {
-        if (m.result?.uuid === data.uuid) streak++;
+        if (getMatchResult(m, data.uuid) === 'win') streak++;
         else break;
       }
       return { value: String(streak) };
@@ -1643,7 +1640,7 @@ const WIDGET_DEFS = [
     id: 'draws',
     label: 'DRAWS',
     compute(data, matches) {
-      const draws = matches.filter(m => m.result?.uuid === null && !m.forfeited).length;
+      const draws = matches.filter(m => getMatchResult(m, data.uuid) === 'draw').length;
       return { value: String(draws) };
     }
   },
