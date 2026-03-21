@@ -1342,7 +1342,7 @@ function getMatchResult(match, playerUUID) {
 
   if (match.forfeited) {
     if (!ourChange) return 'loss';
-    return ourChange.change < 0 ? 'loss' : 'draw';
+    return ourChange.change > 0 ? 'win' : ourChange.change < 0 ? 'loss' : 'draw';
   }
 
   if (winnerUUID === undefined || winnerUUID === null) {
