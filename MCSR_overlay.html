@@ -655,6 +655,80 @@
     flex-shrink: 0;
     margin-left: 4px;
   }
+
+  .theme-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+  .theme-grid::-webkit-scrollbar { width: 4px; }
+  .theme-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+  .theme-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .theme-row-label {
+    font-size: 7px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .theme-color-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 3px;
+    padding: 4px 7px;
+  }
+  .theme-color-wrap input[type=color] {
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .theme-hex {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    width: 0;
+  }
+  .preset-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 5px;
+    padding: 5px 8px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .preset-btn:hover { color: var(--text); background: rgba(255,255,255,0.1); }
+  .preset-btn.active { color: var(--gold); background: rgba(245,200,66,0.1); border-color: rgba(245,200,66,0.3); }
+  .preset-btn.user-preset { color: var(--cyan); border-color: rgba(74,240,216,0.2); }
+  .preset-btn.user-preset:hover { background: rgba(74,240,216,0.08); }
+  .preset-delete {
+    font-size: 8px;
+    margin-left: 3px;
+    opacity: 0.5;
+    cursor: pointer;
+  }
+  .preset-delete:hover { opacity: 1; color: var(--red); }
 </style>
 </head>
 <body>
@@ -665,6 +739,7 @@
       <button class="cfg-tab active" id="tabUser" onclick="switchTab('user')">USERNAME</button>
       <button class="cfg-tab" id="tabWidgets" onclick="switchTab('widgets')">WIDGETS</button>
       <button class="cfg-tab" id="tabDisplay" onclick="switchTab('display')">DISPLAY</button>
+      <button class="cfg-tab" id="tabTheme" onclick="switchTab('theme')">THEME</button>
     </div>
 
     
@@ -710,6 +785,19 @@
       <div class="settings-label" style="margin-top:14px;margin-bottom:4px;font-size:7px;color:var(--muted)">
         Compact: single bar with ELO + stats
       </div>
+    </div>
+
+
+    <div id="panelTheme" style="display:none">
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+        <div class="settings-label" style="width:100%;margin-bottom:4px">PRESETS</div>
+        <div id="presetBtns" style="display:flex;gap:5px;flex-wrap:wrap;width:100%"></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <input class="settings-input" id="presetNameInput" placeholder="Preset name..." style="flex:1;margin-bottom:0" />
+        <button class="btn btn-save" id="savePresetBtn" style="white-space:nowrap;padding:8px 10px">SAVE</button>
+      </div>
+      <div class="theme-grid" id="themeGrid"></div>
     </div>
 
     <div class="settings-actions">
@@ -1130,6 +1218,7 @@ function saveSettings() {
   saveWidgetConfig(widgetConfig);
 
   localStorage.setItem('mcsr_compact', compactMode);
+  persistTheme();
   applyCompactMode();
   closeSettings();
 
@@ -1743,13 +1832,212 @@ function applyCompactMode() {
 }
 
 function switchTab(tab) {
-  document.getElementById('panelUser').style.display    = tab === 'user'    ? '' : 'none';
-  document.getElementById('panelWidgets').style.display = tab === 'widgets' ? '' : 'none';
-  document.getElementById('panelDisplay').style.display = tab === 'display' ? '' : 'none';
-  document.getElementById('tabUser').classList.toggle('active',    tab === 'user');
-  document.getElementById('tabWidgets').classList.toggle('active', tab === 'widgets');
-  document.getElementById('tabDisplay').classList.toggle('active', tab === 'display');
+  ['user','widgets','display','theme'].forEach(t => {
+    document.getElementById('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = tab === t ? '' : 'none';
+    document.getElementById('tab'   + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', tab === t);
+  });
+  if (tab === 'theme') buildThemePanel();
 }
+
+
+const THEME_VARS = [
+  { key: '--bg',        label: 'Background'   },
+  { key: '--panel',     label: 'Panel'        },
+  { key: '--gold',      label: 'Accent / ELO' },
+  { key: '--cyan',      label: 'Values'       },
+  { key: '--green',     label: 'Win'          },
+  { key: '--red',       label: 'Loss'         },
+  { key: '--text',      label: 'Text'         },
+  { key: '--muted',     label: 'Muted Text'   },
+  { key: '--border',    label: 'Border'       },
+];
+
+const BUILT_IN_PRESETS = [
+  {
+    name: 'Default',
+    vars: { '--bg':'#0d0d0f','--panel':'#12121699','--gold':'#f5c842','--cyan':'#4af0d8','--green':'#4aff8c','--red':'#ff4f4f','--text':'#e8e8f0','--muted':'#5a5a6e','--border':'#ffffff12' }
+  },
+  {
+    name: 'Midnight',
+    vars: { '--bg':'#050510','--panel':'#0a0a2099','--gold':'#a78bfa','--cyan':'#818cf8','--green':'#34d399','--red':'#f87171','--text':'#e2e8f0','--muted':'#475569','--border':'#ffffff10' }
+  },
+  {
+    name: 'Forest',
+    vars: { '--bg':'#0a120a','--panel':'#0f1f0f99','--gold':'#a3e635','--cyan':'#4ade80','--green':'#86efac','--red':'#f87171','--text':'#dcfce7','--muted':'#4b7a4b','--border':'#ffffff10' }
+  },
+  {
+    name: 'Crimson',
+    vars: { '--bg':'#0f0505','--panel':'#1a080899','--gold':'#fb923c','--cyan':'#f43f5e','--green':'#4ade80','--red':'#dc2626','--text':'#fef2f2','--muted':'#7f3f3f','--border':'#ffffff10' }
+  },
+  {
+    name: 'Ocean',
+    vars: { '--bg':'#010d18','--panel':'#021a2e99','--gold':'#38bdf8','--cyan':'#67e8f9','--green':'#34d399','--red':'#f87171','--text':'#e0f2fe','--muted':'#334e6b','--border':'#ffffff10' }
+  },
+  {
+    name: 'Mono',
+    vars: { '--bg':'#0a0a0a','--panel':'#14141499','--gold':'#ffffff','--cyan':'#d4d4d4','--green':'#a3a3a3','--red':'#737373','--text':'#f5f5f5','--muted':'#525252','--border':'#ffffff15' }
+  },
+];
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+let currentTheme = { ...BUILT_IN_PRESETS[0].vars };
+
+function applyThemeVars(vars) {
+  currentTheme = { ...vars };
+  const root = document.documentElement;
+  THEME_VARS.forEach(({ key }) => {
+    if (vars[key]) root.style.setProperty(key, vars[key]);
+  });
+  if (vars['--gold']) root.style.setProperty('--gold-glow', hexToRgba(vars['--gold'], 0.35));
+  if (vars['--cyan']) root.style.setProperty('--cyan-glow', hexToRgba(vars['--cyan'], 0.25));
+  syncPickersToTheme();
+}
+
+function syncPickersToTheme() {
+  THEME_VARS.forEach(({ key }) => {
+    const picker = document.getElementById('picker_' + key.replace(/-/g,'_'));
+    const hex    = document.getElementById('hex_'    + key.replace(/-/g,'_'));
+    if (picker) picker.value = currentTheme[key] || '#000000';
+    if (hex)    hex.value    = currentTheme[key] || '#000000';
+  });
+}
+
+function setThemeVar(key, value) {
+  currentTheme[key] = value;
+  document.documentElement.style.setProperty(key, value);
+  if (key === '--gold') document.documentElement.style.setProperty('--gold-glow', hexToRgba(value, 0.35));
+  if (key === '--cyan') document.documentElement.style.setProperty('--cyan-glow', hexToRgba(value, 0.25));
+}
+
+function loadUserPresets() {
+  try { return JSON.parse(localStorage.getItem('mcsr_presets') || '[]'); }
+  catch { return []; }
+}
+
+function saveUserPresets(presets) {
+  localStorage.setItem('mcsr_presets', JSON.stringify(presets));
+}
+
+function loadSavedTheme() {
+  try {
+    const saved = localStorage.getItem('mcsr_theme');
+    if (saved) applyThemeVars(JSON.parse(saved));
+  } catch {}
+}
+
+function persistTheme() {
+  localStorage.setItem('mcsr_theme', JSON.stringify(currentTheme));
+}
+
+function buildThemePanel() {
+  const grid = document.getElementById('themeGrid');
+  if (grid.children.length === 0) {
+    THEME_VARS.forEach(({ key, label }) => {
+      const id = key.replace(/-/g,'_');
+      const row = document.createElement('div');
+      row.className = 'theme-row';
+
+      const lbl = document.createElement('div');
+      lbl.className = 'theme-row-label';
+      lbl.textContent = label;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'theme-color-wrap';
+
+      const picker = document.createElement('input');
+      picker.type = 'color';
+      picker.id = 'picker_' + id;
+      picker.value = currentTheme[key] || '#000000';
+
+      const hexInput = document.createElement('input');
+      hexInput.className = 'theme-hex';
+      hexInput.id = 'hex_' + id;
+      hexInput.value = currentTheme[key] || '#000000';
+      hexInput.maxLength = 7;
+
+      picker.addEventListener('input', () => {
+        hexInput.value = picker.value;
+        setThemeVar(key, picker.value);
+      });
+
+      hexInput.addEventListener('change', () => {
+        let v = hexInput.value.trim();
+        if (!v.startsWith('#')) v = '#' + v;
+        if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+          picker.value = v;
+          setThemeVar(key, v);
+          hexInput.value = v;
+        }
+      });
+
+      wrap.appendChild(picker);
+      wrap.appendChild(hexInput);
+      row.appendChild(lbl);
+      row.appendChild(wrap);
+      grid.appendChild(row);
+    });
+  }
+
+  syncPickersToTheme();
+  buildPresetButtons();
+}
+
+function buildPresetButtons() {
+  const container = document.getElementById('presetBtns');
+  container.innerHTML = '';
+
+  const allPresets = [
+    ...BUILT_IN_PRESETS.map(p => ({ ...p, builtin: true })),
+    ...loadUserPresets().map(p => ({ ...p, builtin: false }))
+  ];
+
+  allPresets.forEach(preset => {
+    const wrap = document.createElement('span');
+    wrap.style.cssText = 'display:inline-flex;align-items:center;';
+
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn' + (preset.builtin ? '' : ' user-preset');
+    btn.textContent = preset.name;
+    btn.addEventListener('click', () => {
+      applyThemeVars(preset.vars);
+      buildPresetButtons();
+    });
+
+    wrap.appendChild(btn);
+
+    if (!preset.builtin) {
+      const del = document.createElement('span');
+      del.className = 'preset-delete';
+      del.textContent = '✕';
+      del.title = 'Delete preset';
+      del.addEventListener('click', () => {
+        saveUserPresets(loadUserPresets().filter(p => p.name !== preset.name));
+        buildPresetButtons();
+      });
+      wrap.appendChild(del);
+    }
+
+    container.appendChild(wrap);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('savePresetBtn').addEventListener('click', () => {
+    const name = document.getElementById('presetNameInput').value.trim();
+    if (!name) return;
+    const presets = loadUserPresets().filter(p => p.name !== name);
+    presets.push({ name, vars: { ...currentTheme } });
+    saveUserPresets(presets);
+    document.getElementById('presetNameInput').value = '';
+    buildPresetButtons();
+  });
+});
 
 function startPolling() {
   if (refreshTimer) clearInterval(refreshTimer);
@@ -1779,6 +2067,7 @@ window.addEventListener('load', () => {
   });
 
   applyCompactMode();
+  loadSavedTheme();
   if (!USERNAME) { openSettings(); return; }
   buildSlots(3, '#f5c842');
   startPolling();
